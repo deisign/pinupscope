@@ -16,44 +16,29 @@ FOLDER_ID = "1duGXZE6iUp1px9pNqYTxjd2WIDsBYWsH"
 # Чтение данных из Streamlit Secrets и создание `credentials.json`
 def create_credentials_file():
     creds_data = {
-        "installed": {
+        "web": {
             "client_id": st.secrets["google_credentials"]["client_id"],
             "project_id": st.secrets["google_credentials"]["project_id"],
             "auth_uri": st.secrets["google_credentials"]["auth_uri"],
             "token_uri": st.secrets["google_credentials"]["token_uri"],
             "auth_provider_x509_cert_url": st.secrets["google_credentials"]["auth_provider_x509_cert_url"],
             "client_secret": st.secrets["google_credentials"]["client_secret"],
-            "redirect_uris": [st.secrets["google_credentials"]["redirect_uris"]]
+            "redirect_uris": st.secrets["google_credentials"]["redirect_uris"]
         }
     }
     with open("credentials.json", "w") as creds_file:
         json.dump(creds_data, creds_file)
 
-# Авторизация Google Drive через консольный поток
+# Авторизация Google Drive
 def authenticate_google_drive():
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     if not creds or not creds.valid:
         flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-        auth_url, _ = flow.authorization_url(prompt='consent')
-
-        # Выводим URL авторизации
-        st.write("Перейдите по следующей ссылке для авторизации Google Drive:")
-        st.write(auth_url)
-
-        # Ввод кода авторизации вручную
-        auth_code = st.text_input("Введите код авторизации:")
-        if auth_code:
-            try:
-                flow.fetch_token(code=auth_code)
-                creds = flow.credentials
-
-                # Сохраняем токен в файл
-                with open('token.json', 'w') as token:
-                    token.write(creds.to_json())
-            except Exception as e:
-                st.error(f"Ошибка авторизации: {e}")
+        creds = flow.run_local_server(port=0)
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
     return creds
 
 # Получение списка файлов из папки Google Drive
