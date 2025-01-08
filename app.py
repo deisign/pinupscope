@@ -1,15 +1,33 @@
+import json
+import os
 import streamlit as st
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from telegram import Bot
-import os
 
 # Настройки
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 TELEGRAM_TOKEN = "7917872223:AAH6U7E3KRs5rg6Tq1QixK1_tgEN1dcEN0o"
 TELEGRAM_CHANNEL = "@pinupscope"
+FOLDER_ID = "1duGXZE6iUp1px9pNqYTxjd2WIDsBYWsH"
+
+# Чтение данных из Streamlit Secrets и создание `credentials.json`
+def create_credentials_file():
+    creds_data = {
+        "installed": {
+            "client_id": st.secrets["google_credentials"]["client_id"],
+            "project_id": st.secrets["google_credentials"]["project_id"],
+            "auth_uri": st.secrets["google_credentials"]["auth_uri"],
+            "token_uri": st.secrets["google_credentials"]["token_uri"],
+            "auth_provider_x509_cert_url": st.secrets["google_credentials"]["auth_provider_x509_cert_url"],
+            "client_secret": st.secrets["google_credentials"]["client_secret"],
+            "redirect_uris": [st.secrets["google_credentials"]["redirect_uris"]]
+        }
+    }
+    with open("credentials.json", "w") as creds_file:
+        json.dump(creds_data, creds_file)
 
 # Авторизация Google Drive
 def authenticate_google_drive():
@@ -23,7 +41,7 @@ def authenticate_google_drive():
             token.write(creds.to_json())
     return creds
 
-# Получение списка файлов в папке
+# Получение списка файлов из папки Google Drive
 def list_files_in_folder(folder_id):
     try:
         creds = authenticate_google_drive()
@@ -32,7 +50,7 @@ def list_files_in_folder(folder_id):
         results = service.files().list(q=query, fields="files(id, name)").execute()
         return results.get('files', [])
     except HttpError as error:
-        st.error(f'Произошла ошибка: {error}')
+        st.error(f"Произошла ошибка: {error}")
         return []
 
 # Публикация изображения в Telegram
@@ -47,11 +65,12 @@ def post_to_telegram(file_name, file_url):
 # Интерфейс Streamlit
 st.title("Пинап-постер в Telegram")
 
-# Ввод идентификатора папки Google Диска
-folder_id = "1duGXZE6iUp1px9pNqYTxjd2WIDsBYWsH"
+# Подготовка `credentials.json` из Streamlit Secrets
+create_credentials_file()
 
-if folder_id:
-    files = list_files_in_folder(folder_id)
+# Показ списка файлов в папке Google Drive
+if FOLDER_ID:
+    files = list_files_in_folder(FOLDER_ID)
     if files:
         st.write("Доступные файлы:")
         for file in files:
@@ -63,7 +82,6 @@ if folder_id:
                 post_to_telegram(file_name, file_url)
     else:
         st.warning("Файлы не найдены в указанной папке.")
+else:
+    st.error("Не указан идентификатор папки Google Диска.")
 
-# Авторизация и запуск через Streamlit
-if __name__ == "__main__":
-    st.write("Запустите приложение через Streamlit.")
