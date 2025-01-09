@@ -9,25 +9,7 @@ from telegram import Bot
 
 # Настройки
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-TELEGRAM_TOKEN = "7917872223:AAH6U7E3KRs5rg6Tq1QixK1_tgEN1dcEN0o"
-TELEGRAM_CHANNEL = "@pinupscope"
-FOLDER_ID = "1duGXZE6iUp1px9pNqYTxjd2WIDsBYWsH"
-
-# Чтение данных из Streamlit Secrets и создание `credentials.json`
-def create_credentials_file():
-    creds_data = {
-        "web": {
-            "client_id": st.secrets["google_credentials"]["client_id"],
-            "project_id": st.secrets["google_credentials"]["project_id"],
-            "auth_uri": st.secrets["google_credentials"]["auth_uri"],
-            "token_uri": st.secrets["google_credentials"]["token_uri"],
-            "auth_provider_x509_cert_url": st.secrets["google_credentials"]["auth_provider_x509_cert_url"],
-            "client_secret": st.secrets["google_credentials"]["client_secret"],
-            "redirect_uris": st.secrets["google_credentials"]["redirect_uris"]
-        }
-    }
-    with open("credentials.json", "w") as creds_file:
-        json.dump(creds_data, creds_file)
+FOLDER_ID = st.secrets["google"]["folder_id"]
 
 # Авторизация Google Drive через консольный поток
 def authenticate_google_drive():
@@ -75,17 +57,14 @@ def list_files_in_folder(folder_id):
 # Публикация изображения в Telegram
 def post_to_telegram(file_name, file_url):
     try:
-        bot = Bot(token=TELEGRAM_TOKEN)
-        bot.send_photo(chat_id=TELEGRAM_CHANNEL, photo=file_url, caption=f"🎨 {file_name}")
+        bot = Bot(token=st.secrets["telegram"]["token"])
+        bot.send_photo(chat_id=st.secrets["telegram"]["channel"], photo=file_url, caption=f"🎨 {file_name}")
         st.success(f"Изображение {file_name} опубликовано!")
     except Exception as e:
         st.error(f"Ошибка при отправке: {e}")
 
 # Интерфейс Streamlit
 st.title("Пинап-постер в Telegram")
-
-# Подготовка `credentials.json` из Streamlit Secrets
-create_credentials_file()
 
 # Показ списка файлов в папке Google Drive
 if FOLDER_ID:
